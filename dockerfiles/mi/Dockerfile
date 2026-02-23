@@ -16,7 +16,7 @@
 #
 # ------------------------------------------------------------------------
 
-FROM docker.wso2.com/wso2mi:4.5.0.0
+FROM wso2/wso2mi:4.5.0
 LABEL maintainer="WSO2 Docker Maintainers <dev@wso2.org>"
 
 # CAR files should be injected via a runtime volume mount at
