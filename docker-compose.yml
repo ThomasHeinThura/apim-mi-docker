@@ -1,27 +1,47 @@
+
 services:
   mysql:
-    image: bimdevops/mysql:8.0.36
-    container_name: wso2-mysql
-    ports:
-      - "3306:3306"
+    image: mysql:8
+    platform: linux/amd64
+    container_name: demo-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: banking_db
+      MYSQL_USER: bank_user
+      MYSQL_PASSWORD: SecurePass123!
+    ports:
+      - "3306:3306"
     volumes:
-      - ./mysql/scripts:/docker-entrypoint-initdb.d
-      - ./mysql/conf/my.cnf:/etc/mysql/mysql.conf.d/my.cnf
-    command: ["--default-authentication-plugin=mysql_native_password"]
+      - ./mysql/scripts/mysql_apim.sql:/docker-entrypoint-initdb.d/01_mysql_apim.sql
+      - ./mysql/scripts/mysql_shared.sql:/docker-entrypoint-initdb.d/02_mysql_shared.sql
+      - ./mysql/scripts/banking_init.sql:/docker-entrypoint-initdb.d/10_banking_init.sql
+      - ./mysql/scripts/banking_seed_users.sql:/docker-entrypoint-initdb.d/20_banking_seed.sql
     healthcheck:
-      test:
-        ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -proot || exit 1"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+    networks:
+      - wso2-network
+
+  redis:
+    image: redis:7
+    platform: linux/amd64
+    container_name: demo-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 40s
     networks:
       - wso2-network
 
   wso2apim-1:
     build: ./apim
+    platform: linux/amd64
     container_name: wso2apim-1
     depends_on:
       mysql:
@@ -41,6 +61,7 @@ services:
 
   wso2apim-2:
     build: ./apim
+    platform: linux/amd64
     container_name: wso2apim-2
     depends_on:
       - wso2apim-1
@@ -60,6 +81,7 @@ services:
 
   nginx:
     image: bimdevops/nginx:alpine
+    platform: linux/amd64
     container_name: wso2-nginx
     depends_on:
       - wso2apim-1
@@ -77,6 +99,7 @@ services:
 
   micro-integrator:
     build: ./dockerfiles/mi
+    platform: linux/amd64
     container_name: micro-integrator
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "8253"]
@@ -94,6 +117,100 @@ services:
     ports:
       - "8290:8290"
       - "8253:8253"
+    networks:
+      - wso2-network
+
+  demoapis:
+    image: bimdevops/dotnet-weather-app:latest
+    platform: linux/amd64
+    container_name: demoapis
+    ports:
+      - "5001:5000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5000
+    networks:
+      - wso2-network
+
+  dotnet-app:
+    image: bimdevops/dotnet-banking-app:latest
+    platform: linux/amd64
+    container_name: dotnet-app
+    ports:
+      - "5002:5000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: server=mysql;user=bank_user;password=SecurePass123!;database=banking_db
+      Redis__ConnectionString: redis:6379
+    networks:
+      - wso2-network
+
+  guaranteed-delivery:
+    image: bimdevops/guaranteeddelivery-backend:latest
+    platform: linux/amd64
+    container_name: guaranteed-delivery
+    ports:
+      - "5003:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_USER: bank_user
+      DB_PASSWORD: SecurePass123!
+      REDIS_HOST: redis
+    networks:
+      - wso2-network
+
+  java-app:
+    image: bimdevops/java-banking-app:latest
+    platform: linux/amd64
+    container_name: java-app
+    ports:
+      - "5004:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/banking_db
+      SPRING_DATASOURCE_USERNAME: bank_user
+      SPRING_DATASOURCE_PASSWORD: SecurePass123!
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: "6379"
+    networks:
+      - wso2-network
+
+  wso2demoapis:
+    image: bimdevops/wso2demoapis-backend:latest
+    platform: linux/amd64
+    container_name: wso2demoapis
+    ports:
+      - "5005:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DB_HOST: mysql
+      DB_USER: bank_user
+      DB_PASSWORD: SecurePass123!
+      REDIS_HOST: redis
     networks:
       - wso2-network
 
