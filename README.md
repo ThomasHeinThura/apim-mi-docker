@@ -22,6 +22,7 @@ This repository contains a Docker Compose setup for running WSO2 API Manager (AP
 ## Configuration
 
 ### WSO2 API Manager Configuration
+
 The main configuration file is located at `apim/repository/conf/deployment.toml`. Key settings include:
 
 - Hostname configured as `am-uat.example.com`
@@ -30,12 +31,14 @@ The main configuration file is located at `apim/repository/conf/deployment.toml`
 - Endpoints configured for `api-uat.example.com`
 
 ### NGINX Configuration
+
 Two configuration files in `nginx/conf.d/`:
 
 1. `amwso2com.conf` - Handles reverse proxy for APIM publisher/store
 2. `load_balancer.conf` - Defines upstream servers for load balancing
 
 ### MySQL Initialization Scripts
+
 SQL scripts in `mysql/scripts/` create the necessary databases and tables for WSO2 API Manager.
 
 ## Usage
@@ -55,14 +58,15 @@ SQL scripts in `mysql/scripts/` create the necessary databases and tables for WS
 ## Default Credentials
 
 - WSO2 API Manager Admin Console:
+
   - Username: `admin`
   - Password: `admin`
-
 - MySQL Root User:
+
   - Username: `root`
   - Password: `root`
-
 - WSO2 Carbon Database User:
+
   - Username: `wso2carbon`
   - Password: `wso2carbon`
 
@@ -71,14 +75,18 @@ SQL scripts in `mysql/scripts/` create the necessary databases and tables for WS
 To customize this setup for your environment:
 
 1. Update hostnames in:
+
    - `apim/repository/conf/deployment.toml`
    - `nginx/conf.d/amwso2com.conf`
    - `nginx/conf.d/load_balancer.conf`
-
 2. Replace SSL certificates in `nginx/ssl/` with your own certificates
-
 3. Modify database credentials in:
+
    - `mysql/scripts/` SQL files
    - `apim/repository/conf/deployment.toml`
-
 4. Adjust port mappings in `docker-compose.yml` if needed
+5. add `/etc/hosts` the IP and hostname
+
+```
+<VM / localhost IP > 	am-uat.example.com api-uat.example.com
+```
