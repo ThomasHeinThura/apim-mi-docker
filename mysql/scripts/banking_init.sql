@@ -26,6 +26,11 @@ CREATE TABLE IF NOT EXISTS compliance_logs (
     checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS jdbc_message_store (
+    indexId BIGINT AUTO_INCREMENT PRIMARY KEY,
+    message LONGBLOB
+);
+
 -- Create a dedicated user
 CREATE USER IF NOT EXISTS 'bank_user'@'%' IDENTIFIED BY 'SecurePass123!';
 GRANT ALL PRIVILEGES ON banking_db.* TO 'bank_user'@'%';

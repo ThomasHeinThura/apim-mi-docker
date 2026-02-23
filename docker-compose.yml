@@ -175,6 +175,25 @@ services:
       DB_PASSWORD: SecurePass123!
       REDIS_HOST: redis
     networks:
+      wso2-network:
+        aliases:
+          - guaranteeddelivery-backend
+
+  soap-backend:
+    build:
+      context: ../BIM.demo.testing.atatus/soap-backend
+      dockerfile: Dockerfile
+    image: bimdevops/soap-banking-backend:latest
+    platform: linux/amd64
+    container_name: soap-backend
+    ports:
+      - "5006:8081"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8081/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
       - wso2-network
 
   java-app:

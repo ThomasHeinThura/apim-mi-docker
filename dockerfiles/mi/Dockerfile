@@ -19,6 +19,10 @@
 FROM wso2/wso2mi:4.5.0
 LABEL maintainer="WSO2 Docker Maintainers <dev@wso2.org>"
 
+ADD --chown=wso2carbon:wso2 \
+	https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar \
+	/home/wso2carbon/wso2mi-4.5.0/lib/mysql-connector-j-8.4.0.jar
+
 # CAR files should be injected via a runtime volume mount at
 # ${WSO2_SERVER_HOME}/repository/deployment/server/carbonapps/
 # (keeping a build-time COPY can be used as a fallback for CI builds,
