@@ -57,7 +57,9 @@ services:
       retries: 20
       start_period: 40s
     networks:
-      - wso2-network
+      wso2-network:
+        aliases:
+          - api-manager
 
   wso2apim-2:
     build: ./apim
@@ -212,7 +214,9 @@ services:
       DB_PASSWORD: SecurePass123!
       REDIS_HOST: redis
     networks:
-      - wso2-network
+      wso2-network:
+        aliases:
+          - wso2demoapis-backend
 
 networks:
   wso2-network:
