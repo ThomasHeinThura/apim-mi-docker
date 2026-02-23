@@ -237,6 +237,15 @@ services:
         aliases:
           - wso2demoapis-backend
 
+  petstore:
+    image: swaggerapi/petstore3:unstable
+    platform: linux/amd64
+    container_name: petstore
+    ports:
+      - "5007:8080"
+    networks:
+      - wso2-network
+
 networks:
   wso2-network:
     driver: bridge
