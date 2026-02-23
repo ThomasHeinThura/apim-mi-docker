@@ -1,0 +1,106 @@
+services:
+  mysql:
+    image: bimdevops/mysql:8.0.36
+    container_name: wso2-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./mysql/scripts:/docker-entrypoint-initdb.d
+      - ./mysql/conf/my.cnf:/etc/mysql/mysql.conf.d/my.cnf
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    healthcheck:
+      test:
+        ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -proot || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+    networks:
+      - wso2-network
+
+  wso2apim-1:
+    build: ./apim
+    container_name: wso2apim-1
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./apim/repository/conf/am1-deployment.toml:/home/wso2carbon/wso2am-4.6.0/repository/conf/deployment.toml
+      - ./apim/repository/resources/security/client-truststore.jks:/home/wso2carbon/wso2am-4.6.0/repository/resources/security/client-truststore.jks
+      - log_volume_1:/home/wso2carbon/wso2am-4.6.0/repository/logs
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1s bash -c '< /dev/tcp/localhost/9443'"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+    networks:
+      - wso2-network
+
+  wso2apim-2:
+    build: ./apim
+    container_name: wso2apim-2
+    depends_on:
+      - wso2apim-1
+    volumes:
+      - ./apim/repository/conf/am2-deployment.toml:/home/wso2carbon/wso2am-4.6.0/repository/conf/deployment.toml
+      - ./apim/repository/resources/security/client-truststore.jks:/home/wso2carbon/wso2am-4.6.0/repository/resources/security/client-truststore.jks
+      - log_volume_2:/home/wso2carbon/wso2am-4.6.0/repository/logs
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1s bash -c '< /dev/tcp/localhost/9443'"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+    networks:
+      - wso2-network
+    entrypoint: ["sh", "-c", "echo 'Waiting 60s before starting APIM...' && sleep 60 && /home/wso2carbon/wso2am-4.6.0/bin/api-manager.sh"]
+
+  nginx:
+    image: bimdevops/nginx:alpine
+    container_name: wso2-nginx
+    depends_on:
+      - wso2apim-1
+      - wso2apim-2
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+    networks:
+      wso2-network:
+        aliases:
+          - am-uat.example.com
+
+  micro-integrator:
+    build: ./dockerfiles/mi
+    container_name: micro-integrator
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8253"]
+      interval: 10s
+      start_period: 30s
+      retries: 10
+    depends_on:
+      mysql:
+        condition: service_healthy
+      wso2apim-1:
+        condition: service_healthy
+    volumes:
+      - ./conf/mi:/home/wso2carbon/wso2-config-volume
+      - ./capps:/home/wso2carbon/wso2mi-4.5.0/repository/deployment/server/carbonapps
+    ports:
+      - "8290:8290"
+      - "8253:8253"
+    networks:
+      - wso2-network
+
+networks:
+  wso2-network:
+    driver: bridge
+
+volumes:
+  log_volume_1:
+  log_volume_2:
