@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS jdbc_message_store (
     message LONGBLOB
 );
 
+ALTER TABLE jdbc_message_store
+    ADD COLUMN msg_id VARCHAR(255) NOT NULL;
+
 -- Create a dedicated user
 CREATE USER IF NOT EXISTS 'bank_user'@'%' IDENTIFIED BY 'SecurePass123!';
 GRANT ALL PRIVILEGES ON banking_db.* TO 'bank_user'@'%';
